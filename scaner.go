@@ -1,0 +1,75 @@
+package main
+
+import (
+	"log"
+	"path/filepath"
+
+	"gitee.com/linakesi/home-cloud-server/models"
+	"github.com/fatih/color"
+	"github.com/fsnotify/fsnotify"
+)
+
+type scaner struct {
+	dir     string
+	watcher *fsnotify.Watcher
+}
+
+func NewScaner(path string) *scaner {
+	w, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &scaner{
+		dir:     path,
+		watcher: w,
+	}
+}
+
+func (w *scaner) log(s ...string) {
+	for _, l := range s {
+		log.Println(color.CyanString("SCAN:") + l)
+	}
+}
+
+// 发现扫描目录中已经存在的服务并触发
+func (w *scaner) Scanning(ts ...models.Trigger) {
+	// TODO:
+	w.log("即将支持扫描 已有服务")
+}
+
+// 发现扫描到的变化触发给传递进来的触发器
+func (w *scaner) Watching(ts ...models.Trigger) {
+	defer w.watcher.Close()
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-w.watcher.Events:
+				if !ok {
+					return
+				}
+				// 监听到的所有事件都打印出来
+				w.log(event.Op.String() + ": " + filepath.Base(event.Name))
+				// 部分事件才进行触发操作：写入或创建或删除
+				const writeOrCreateMask = fsnotify.Write | fsnotify.Create | fsnotify.Remove | fsnotify.Rename
+				if event.Op&writeOrCreateMask != 0 {
+					for _, t := range ts {
+						t.Trig(&event)
+					}
+				}
+			case err, ok := <-w.watcher.Errors:
+				if !ok {
+					return
+				}
+				w.log("error", err.Error())
+			}
+		}
+	}()
+
+	err := w.watcher.Add(w.dir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w.log("watching:" + w.dir)
+	<-done
+}

@@ -1,37 +1,49 @@
 # home-cloud-server
 
-#### 介绍
-HomeCloud项目中，提供应用配置文件即可启动应用服务进行统一访问接口的服务端
+### 介绍
+HomeCloud项目中，提供应用配置文件即可启动应用服务提供统一访问接口的服务端
 
-#### 软件架构
+### 软件架构
 软件架构说明
+```
+├── bin                         # 测试编译的临时目录
+│   └── server
+├── conf
+│   ├── conf.go                 # 程序启动自身所依赖的配置
+│   └── service.go              # 被扫描服务 的配置
+├── controller                  # 控制中心
+│   ├── controller.go           # 控制器 发现服务后的调度者
+│   ├── generator               # 生成器 主要用于生成 nginx 配置
+│   │   └── generator.go
+│   └── operator                # 操作者 主要用于操作 docker 容器
+│       └── opera.go
+├── example.conf.yaml           # 程序使用所依赖的配置 示例
+├── example.service.yaml        # 扫描服务时 服务自身的配置 service 示例
+├── go.mod
+├── go.sum
+├── main.go                     # 程序入口
+├── Makefile
+├── models                      # 保存一些公共的结构体
+│   ├── server.go
+│   └── trigger.go
+├── README.md
+├── scaner.go                   # 扫描器，用于发现服务
+├── tests                       # 测试目录， make serve 会直接使用此处测试环境
+│   ├── conf.yaml
+│   ├── nginx.conf
+│   ├── services
+│   ├── test2.yaml
+│   ├── test.sh                 # 测试脚本，针对启动好的服务，操作目录，以验证服务是否正确进行
+│   └── test.yaml
+└── util.go
+```
+
+### 使用说明
 
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+```bash
+make build # 编译
+make buildcross # 交叉编译 mips64le, arm64, amd64 版本
+make run # 运行编译好的程序
+make serve # 编译并运行
+```

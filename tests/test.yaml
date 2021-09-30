@@ -1,0 +1,8 @@
+image: container.name:tag  # 可以直接使用 docker pull 的名称
+id: UniqueServiceId        # 唯一注册 ID
+expose:                    # 暴露端口列表，最少一个
+  - 8080
+  - 8081
+icon: icon.ico             # 显示图标(备用，暂不确定如何使用此字段)
+title: serviceNameToShow
+
