@@ -46,4 +46,7 @@ make build # 编译
 make buildcross # 交叉编译 mips64le, arm64, amd64 版本
 make run # 运行编译好的程序
 make serve # 编译并运行
+
+# 项目中会监控指定目录的配置文件增改删的操作，可以在运行服务时调用脚本进行测试
+# ./tests/test.sh
 ```
