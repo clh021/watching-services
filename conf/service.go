@@ -1,5 +1,11 @@
 package conf
 
+import (
+	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
+)
+
 type ServiceConf struct {
 	Image    string `yaml:"image"`  // 可以直接使用 docker pull 的名称
 	Id       string `yaml:"id"`     // 唯一注册 ID
@@ -9,12 +15,17 @@ type ServiceConf struct {
 	MapPorts []int  `yaml:"-"`      // 实际映射端口列表
 }
 
-func GetServiceConf(path string) *ServiceConf {
-	return &ServiceConf{
-		Image:    "",
-		Id:       "",
-		Expose:   make([]int, 0),
-		Title:    "",
-		MapPorts: make([]int, 0),
+func GetServiceConf(path string) (*ServiceConf, error) {
+	yamlFile, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
 	}
+
+	var c ServiceConf
+
+	err = yaml.Unmarshal(yamlFile, &c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
