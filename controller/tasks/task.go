@@ -24,7 +24,7 @@ func (t *Task) loadServiceConf() {
 
 type TaskList struct {
 	list      []*Task
-	lock      sync.Mutex
+	lock      sync.Mutex // lock TaskList
 	DoingTask chan *Task // 正在处理的任务
 }
 

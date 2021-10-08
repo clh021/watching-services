@@ -33,8 +33,20 @@ func (w *scaner) log(s ...string) {
 
 // 发现扫描目录中已经存在的服务并触发
 func (w *scaner) Scanning(ts ...models.Trigger) {
-	// TODO:
-	w.log("即将支持扫描 已有服务")
+	w.log("扫描目录:" + w.dir)
+	files, err := filepath.Glob(w.dir + "/*.yaml")
+	if err != nil {
+		w.log(err.Error())
+	}
+	for _, f := range files {
+		w.log("发现服务:" + filepath.Base(f))
+		for _, t := range ts {
+			t.Trig(&fsnotify.Event{
+				Name: f,
+				Op:   fsnotify.Create,
+			})
+		}
+	}
 }
 
 // 发现扫描到的变化触发给传递进来的触发器
