@@ -1,9 +1,10 @@
 package generator
 
 import (
-	"log"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"gitee.com/linakesi/home-cloud-server/conf"
 	"github.com/fatih/color"
@@ -22,7 +23,7 @@ func New(path string) *Generator {
 
 func (g *Generator) log(s ...string) {
 	for _, l := range s {
-		log.Println(color.GreenString(" GEN:") + l)
+		log.Println(color.HiMagentaString("生成:") + l)
 	}
 }
 

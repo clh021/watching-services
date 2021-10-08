@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
 	"path/filepath"
 
 	"gitee.com/linakesi/home-cloud-server/models"
 	"github.com/fatih/color"
 	"github.com/fsnotify/fsnotify"
+	log "github.com/sirupsen/logrus"
 )
 
 type scaner struct {
@@ -27,7 +27,7 @@ func NewScaner(path string) *scaner {
 
 func (w *scaner) log(s ...string) {
 	for _, l := range s {
-		log.Println(color.CyanString("SCAN:") + l)
+		log.Println(color.CyanString("扫描:") + l)
 	}
 }
 
@@ -49,7 +49,7 @@ func (w *scaner) Watching(ts ...models.Trigger) {
 					return
 				}
 				// 监听到的所有事件都打印出来
-				w.log(event.Op.String() + ": " + filepath.Base(event.Name))
+				w.log(event.Op.String() + "\t: " + filepath.Base(event.Name))
 				// 部分事件才进行触发操作：写入或创建或删除
 				const writeOrCreateMask = fsnotify.Write | fsnotify.Create | fsnotify.Remove | fsnotify.Rename
 				if event.Op&writeOrCreateMask != 0 {
@@ -70,6 +70,6 @@ func (w *scaner) Watching(ts ...models.Trigger) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	w.log("watching:" + w.dir)
+	w.log("监听目录:" + w.dir)
 	<-done
 }

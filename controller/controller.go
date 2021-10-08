@@ -1,122 +1,63 @@
 package controller
 
 import (
-	"log"
 	"path/filepath"
-	"strconv"
 	"sync"
 
-	"gitee.com/linakesi/home-cloud-server/conf"
+	log "github.com/sirupsen/logrus"
+
 	"gitee.com/linakesi/home-cloud-server/controller/generator"
 	"gitee.com/linakesi/home-cloud-server/controller/operator"
+	"gitee.com/linakesi/home-cloud-server/controller/tasks"
 	"github.com/fatih/color"
 	"github.com/fsnotify/fsnotify"
 )
 
-type CtrlTask struct {
-	file    string
-	opera   string
-	service *conf.ServiceConf
-}
-
-func (t *CtrlTask) loadSericeConf() {
-	t.service = conf.GetServiceConf(t.file)
-}
-
 type Controller struct {
 	nginxGenerator *generator.Generator
 	dockerOperator *operator.Operator
-	listTask       []*CtrlTask
-	listLocked     bool //避免判断列表中存在同服务变化任务时操作失败
+	listTask       *tasks.TaskList
 	genWG          sync.WaitGroup
 }
 
 func New(g *generator.Generator, o *operator.Operator) *Controller {
+	tl := tasks.New()
 	ng := &Controller{
 		dockerOperator: o,
 		nginxGenerator: g,
-		listLocked:     false,
+		listTask:       tl,
 	}
-	go ng.Start()
+	go tl.Working()
+	go ng.Working()
 	return ng
 }
-func (c *Controller) prepare(wg *sync.WaitGroup, t *CtrlTask) {
-	c.log("当前任务总数:" + strconv.Itoa(len(c.listTask)))
-	c.log("处理任务[" + t.opera + "]: " + filepath.Base(t.file))
 
+func (c *Controller) Working() {
 	for {
-		// listLocked 避免判断列表中存在同服务变化任务时操作失败
-		if !c.listLocked {
-			c.listLocked = true
-			t.loadSericeConf()
-			c.del(t)
-			c.listLocked = false
-			wg.Done()
-			break
+		c.genWG = sync.WaitGroup{}
+
+		c.genWG.Add(1)
+		c.log("等待下一步要执行的任务")
+		t := <-c.listTask.DoingTask
+		c.log("取得任务:" + filepath.Base(t.File) + " " + t.Opera)
+		err := c.dockerOperator.Apply(&c.genWG, t.Service)
+		if err != nil {
+			c.log(err.Error())
 		}
-	}
-}
-func (c *Controller) Start() {
-	for {
-		if len(c.listTask) > 0 {
-			c.genWG = sync.WaitGroup{}
 
-			c.genWG.Add(1)
-			// 配置准备
-			t := c.listTask[0]
-			c.prepare(&c.genWG, t)
-
-			c.genWG.Add(1)
-			// 检查 ctrlTaskQueue 是否有内容，有就取出第一个
-			// 发送到处理队列 queue
-			err := c.dockerOperator.Apply(&c.genWG, t.service)
-			if err != nil {
-				c.log(err.Error())
-			}
-
-			c.genWG.Add(1)
-			err = c.nginxGenerator.Apply(&c.genWG, t.service)
-			if err != nil {
-				c.log(err.Error())
-			}
-
-			c.genWG.Wait()
+		c.genWG.Add(1)
+		err = c.nginxGenerator.Apply(&c.genWG, t.Service)
+		if err != nil {
+			c.log(err.Error())
 		}
-	}
-}
 
-func (c *Controller) del(t *CtrlTask) {
-	for i, other := range c.listTask {
-		if other.file == t.file {
-			c.listTask = append(c.listTask[:i], c.listTask[i+1:]...)
-			break
-		}
+		c.genWG.Wait()
 	}
-}
-
-// 去除重复，并以最后一个任务为准
-// (重复任务更新文件操作即可)
-func (c *Controller) add(t *CtrlTask) {
-	Index := c.exist(t)
-	if -1 == Index {
-		c.listTask = append(c.listTask, t)
-	} else {
-		c.listTask[Index].opera = t.opera
-	}
-}
-
-func (c *Controller) exist(s *CtrlTask) int {
-	for number, t := range c.listTask {
-		if t.file == s.file {
-			return number
-		}
-	}
-	return -1
 }
 
 func (c *Controller) log(s ...string) {
 	for _, l := range s {
-		log.Println(color.GreenString("CTRL:") + l)
+		log.Debugln(color.GreenString("服务:") + l)
 	}
 }
 
@@ -127,20 +68,20 @@ func (c *Controller) Trig(event *fsnotify.Event) {
 	const delEvent = fsnotify.Remove | fsnotify.Rename
 	if event.Op&fsnotify.Write != 0 {
 		// 有文件被写
-		c.log("      发现服务修改: " + filepath.Base(event.Name))
-		c.add(&CtrlTask{file: event.Name, opera: "update"})
+		c.log("更新\t: " + filepath.Base(event.Name))
+		c.listTask.Add(&tasks.Task{File: event.Name, Opera: "update"})
 	} else if event.Op&fsnotify.Create != 0 {
 		// 有文件被创建
-		c.log("      发现服务增加: " + filepath.Base(event.Name))
-		c.add(&CtrlTask{file: event.Name, opera: "add"})
+		c.log("添加\t: " + filepath.Base(event.Name))
+		c.listTask.Add(&tasks.Task{File: event.Name, Opera: "add"})
 	} else if event.Op&delEvent != 0 {
 		// 有文件被删除
-		c.log("      发现服务删除: " + filepath.Base(event.Name))
-		c.del(&CtrlTask{file: event.Name})
+		c.log("删除\t: " + filepath.Base(event.Name))
+		c.listTask.Del(&tasks.Task{File: event.Name})
 	} else {
 		// 未知的操作
 		c.log(
-			color.RedString("      发现未处理的事件: !!!"),
+			color.RedString("Unkown Event !!!"),
 			filepath.Base(event.Name),
 			event.Op.String(),
 		)

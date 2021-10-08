@@ -1,9 +1,10 @@
 package operator
 
 import (
-	"log"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"gitee.com/linakesi/home-cloud-server/conf"
 	"github.com/fatih/color"
@@ -18,7 +19,7 @@ func New() *Operator {
 
 func (o *Operator) log(s ...string) {
 	for _, l := range s {
-		log.Println(color.YellowString("OPER:") + l)
+		log.Println(color.YellowString("容器:") + l)
 	}
 }
 

@@ -3,10 +3,11 @@ package conf
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fatih/color"
 	"github.com/linakesi/lnksutils"
@@ -69,7 +70,7 @@ func GetConf() *Config {
 	if err := viper.Unmarshal(&c); err != nil {
 		panic(err)
 	}
-	log.Println(color.BlueString("CONF:"), viper.ConfigFileUsed())
+	log.Println(color.BlueString("配置:"), viper.ConfigFileUsed())
 	c.ConfigDir = filepath.Dir(viper.ConfigFileUsed())
 	if err = c.transformIfNeed(); err != nil {
 		panic(err)
