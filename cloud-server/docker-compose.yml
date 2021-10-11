@@ -1,0 +1,12 @@
+
+    html:
+        image: wordpress:latest
+        volumes:
+            - ${PWD}/wp-config.php:/var/www/html/wp-config.php
+            - ${PWD}/db.php:/var/www/html/wp-content/db.php
+            - ${PWD}/php.ini:/usr/local/etc/php/php.ini
+            - ${PWD}/plugins:/var/www/html/wp-content/plugins
+            - ${PWD}/database:/var/www/html/wp-content/database:rw
+        ports:
+            - "8080:80"
+        restart: always
